@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "signalExtraction.C": "cpp"
+    },
+    "cmake.configureOnOpen": false
+}
