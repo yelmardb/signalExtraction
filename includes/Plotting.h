@@ -311,7 +311,7 @@ void PlotArray(TObjArray *arraytoplot, const char *controlstring ,Short_t *color
       cout<<"| Rel. text size: "<<relativeTextSize<<endl;
       TLegend *leghh = (TLegend*) arraytoplot->At(hh);
       leghh->SetTextFont(titleFont);
-      leghh->SetTextSize(17.);
+      leghh->SetTextSize(23.);
       leghh->SetFillColor(kWhite);
       leghh->SetFillStyle(0);
       leghh->SetBorderSize(0);
@@ -725,8 +725,8 @@ TCanvas *makeCanvas(TObjArray *histArray, TObjArray *ratioArray = 0,const char *
   Int_t nHist = histArray->GetEntries();
   if(nHist == 0){cout<<"| ERROR: Arrays empty"<<endl; return nullptr;}
 
-  Float_t lableSize = 1.40; // Factor the label will be larger than the relative textsize
-  Float_t titleSize = 1.40; // Factor the title will be larger than the relative textsize
+  Float_t lableSize = 2.0; // Factor the label will be larger than the relative textsize
+  Float_t titleSize = 2.0; // Factor the title will be larger than the relative textsize
   Float_t textSizeFactor = 12000;
   Int_t lableFont= 43;
   Int_t titleFont= 43;
@@ -799,7 +799,7 @@ TCanvas *makeCanvas(TObjArray *histArray, TObjArray *ratioArray = 0,const char *
     lowMargin=0.13;
     if(ratioArray){
       titleOffsetY=1.7;
-      titleOffsetX=4.1;
+      titleOffsetX=1.3;
       topMargin=0.08;
       lowMargin=0.30;
     }
@@ -809,18 +809,20 @@ TCanvas *makeCanvas(TObjArray *histArray, TObjArray *ratioArray = 0,const char *
     canvasWidth=800;
     canvasHeight=800*1.41421356;
     padFraction = 0.25;
-    titleOffsetY=2;
-    titleOffsetX=4.5;
+    titleOffsetY=1.5;
+    titleOffsetX=1.3;
     sideMargin = 1.54;
     topMargin = 0.12 * 1.414213562/2;
     lowMargin = 0.12 * 1.414213562/2;
     if(ratioArray){
       titleOffsetY=4;
-      titleOffsetX=4.5;
+      titleOffsetX=2.3;
       topMargin = (0.12 * 1.414213562/2)/(1-padFraction);
       lowMargin = (0.12 * 1.414213562/2)/(padFraction);
     }
   }
+  titleOffsetY=5.5;
+  titleOffsetX = 1.25;
 
 
 
@@ -1910,20 +1912,18 @@ TH1D* RebinHistogram(const TH1D* h, Int_t nBins, const Double_t* xBins){
    if (!xBins) return (TH1D*)h;
    TH1D *h1 = (TH1D*) h->Clone("h");
    if(!h1->GetSumw2N()) h1->Sumw2();
-   for (Int_t i = 1; i<=h1->GetNbinsX(); i++) {
+   for (Int_t i = 1; i<h1->GetNbinsX(); i++) {
      Double_t value = h1->GetBinContent(i);
      Double_t error = h1->GetBinError(i);
-     Double_t width = h1->GetBinWidth(i);
-     h1->SetBinContent(i,value*width);
-     h1->SetBinError(i,error*width);
+     h1->SetBinContent(i,value);
+     h1->SetBinError(i,error);
    }
    TH1D* h2 = (TH1D*)h1->Rebin(nBins,"hnew",xBins);
-   for (Int_t i = 1; i<=h2->GetNbinsX(); i++) {
+   for (Int_t i = 1; i<h2->GetNbinsX(); i++) {
      Double_t value = h2->GetBinContent(i);
-     Double_t width = h2->GetBinWidth(i);
      Double_t error = h2->GetBinError(i);
-     h2->SetBinContent(i,value/width);
-     h2->SetBinError(i,error/width);
+     h2->SetBinContent(i,value);
+     h2->SetBinError(i,error);
    }
   if (h1) delete h1;
   TString stName(h->GetName());
@@ -1934,6 +1934,113 @@ TH1D* RebinHistogram(const TH1D* h, Int_t nBins, const Double_t* xBins){
   return h2;
 }
 
+
+TH1D* RebinHistogram4Eta2Pi0Ratio(const TH1D* h, Int_t nBins, const Double_t* xBins){
+   if (!h) return 0;
+   if (!nBins) return (TH1D*)h;
+   if (!xBins) return (TH1D*)h;
+   TH1D *h1 = (TH1D*) h->Clone("h");
+   if(!h1->GetSumw2N()) h1->Sumw2();
+   for (Int_t i = 1; i<h1->GetNbinsX(); i++) {
+     Double_t value = h1->GetBinContent(i);
+     Double_t error = h1->GetBinError(i);
+     Double_t binWidth = h1->GetBinWidth(i);
+     h1->SetBinContent(i,value/binWidth);
+     h1->SetBinError(i,error/binWidth);
+   }
+   TH1D* h2 = (TH1D*)h1->Rebin(nBins,"hnew",xBins);
+   for (Int_t i = 1; i<h2->GetNbinsX(); i++) {
+     Double_t value = h2->GetBinContent(i);
+     Double_t error = h2->GetBinError(i);
+      Double_t binWidth = h1->GetBinWidth(i);
+     h2->SetBinContent(i,value/binWidth);
+     h2->SetBinError(i,error/binWidth);
+   }
+  if (h1) delete h1;
+  TString stName(h->GetName());
+  TString stTitle(h->GetTitle());
+  stName += "_rbn";
+  h2->SetName(stName);
+  h2->SetTitle(stTitle);
+  return h2;
+}
+
+
+TH1D* RebinHistAlternative(TH1D* hist, const std::vector<double>& bin_var) {
+    // Create the new rebinned histogram
+    int n_bins = bin_var.size() - 1;
+    TH1D* new_hist = new TH1D("hrebinned", "", n_bins, bin_var.data());
+    new_hist->Sumw2(); // Enable error handling
+
+    // Loop through the new bins
+    for (int bin = 0; bin < n_bins; ++bin) {
+        double b1 = bin_var[bin];
+        double b2 = bin_var[bin + 1];
+
+        // Find the corresponding bin edges in the original histogram
+        int bin_b1 = hist->GetXaxis()->FindBin(b1 + 1e-6);
+        int bin_b2 = hist->GetXaxis()->FindBin(b2 - 1e-6);
+
+        // Calculate the integral content and error
+        double content = 0.0;
+        double error = 0.0;
+
+        for (int i = bin_b1; i <= bin_b2; ++i) {
+            content += hist->GetBinContent(i);
+        }
+
+        error = TMath::Sqrt(content); // Assuming Poisson statistics
+
+        // Bin properties
+        double bin_center = (b1 + b2) / 2.0; // Center of the new bin
+        double bin_width = b2 - b1;          // Width of the new bin
+
+        // Normalize the content by the bin width and fill the new histogram
+        double new_content = content / bin_width;
+        new_hist->SetBinContent(new_hist->FindBin(bin_center), new_content);
+        new_hist->SetBinError(new_hist->FindBin(bin_center), error);
+
+        // Debug information
+        std::cout << "Bin " << bin << ": [" << b1 << ", " << b2 << "]"
+                  << ", Content: " << content
+                  << ", Error: " << error << std::endl;
+    }
+
+    return new_hist;
+}
+
+TH1D* MakeRatioSpectra4Eta2Pi0Ratio(const TH1D *spec1, const TH1D*spec2, const char* option = ""){
+  TString stOption(option);
+  if(! stOption.Contains("quiet")){
+    for(Int_t ii = 0; ii<30; ii++){
+      cout<<"| Tools:  Only use MakeRatioSpectra for Spectra"<<endl;
+    }
+    cout<<"| Tools: Use the option \"quiet\" to mute this warning"<<endl;
+  }
+  Int_t nbins1 = spec1->GetXaxis()->GetNbins();
+  Int_t nbins2 = spec2->GetXaxis()->GetNbins();
+  cout<<"| MakeRatio: "<<spec1->GetName()<<"/"<<spec2->GetName()<<endl;
+  cout<<"| Bins 1 :"<<nbins1<<endl;
+  cout<<"| Bins 2 :"<<nbins2<<endl;
+  
+
+    TH1D *hratio = 0;
+
+  if (nbins1 <= nbins2){
+    TArrayD *binarr = (TArrayD*)spec1->GetXaxis()->GetXbins();
+    TH1D *spec2rebin = RebinHistogram4Eta2Pi0Ratio(spec2,nbins1,binarr->GetArray());
+    hratio = (TH1D*)spec1->Clone("ratio");
+    hratio->GetYaxis()->SetTitle("Ratio");
+    hratio -> Divide(spec1,spec2rebin,1,1,option);
+  }else{
+    TArrayD *binarr = (TArrayD*)spec2->GetXaxis()->GetXbins();
+    TH1D *spec1rebin = RebinHistogram4Eta2Pi0Ratio(spec1,nbins2,binarr->GetArray());
+    hratio = (TH1D*)spec1rebin->Clone("ratio");
+    hratio->GetYaxis()->SetTitle("Ratio");
+    hratio -> Divide(spec1rebin,spec2,1,1,option);
+  }
+  return hratio;
+}
 
 TH1D* MakeRatioSpectra(const TH1D *spec1, const TH1D*spec2, const char* option = ""){
   TString stOption(option);
@@ -1948,6 +2055,7 @@ TH1D* MakeRatioSpectra(const TH1D *spec1, const TH1D*spec2, const char* option =
   cout<<"| MakeRatio: "<<spec1->GetName()<<"/"<<spec2->GetName()<<endl;
   cout<<"| Bins 1 :"<<nbins1<<endl;
   cout<<"| Bins 2 :"<<nbins2<<endl;
+  
 
     TH1D *hratio = 0;
 
@@ -1968,6 +2076,47 @@ TH1D* MakeRatioSpectra(const TH1D *spec1, const TH1D*spec2, const char* option =
 }
 
 
+TH1D* MakeRatioSpectraWoNorm(const TH1D *spec1, const TH1D*spec2, const char* option = ""){
+    TRandom *random = new TRandom(0);
+
+    TString title("ratio");
+    title += Form("%f",random->Rndm());
+
+  TString stOption(option);
+  if(! stOption.Contains("quiet")){
+    for(Int_t ii = 0; ii<30; ii++){
+      cout<<"| Tools:  Only use MakeRatioSpectra for Spectra"<<endl;
+    }
+    cout<<"| Tools: Use the option \"quiet\" to mute this warning"<<endl;
+  }
+  Int_t nbins1 = spec1->GetXaxis()->GetNbins();
+  Int_t nbins2 = spec2->GetXaxis()->GetNbins();
+  cout<<"| MakeRatio: "<<spec1->GetName()<<"/"<<spec2->GetName()<<endl;
+  cout<<"| Bins 1 :"<<nbins1<<endl;
+  cout<<"| Bins 2 :"<<nbins2<<endl;
+  
+
+    TH1D *hratio = 0;
+
+  if (nbins1 <= nbins2){
+    TArrayD *binarr = (TArrayD*)spec1->GetXaxis()->GetXbins();
+    TH1D *spec2rebin = RebinHistogram(spec2,nbins1,binarr->GetArray());
+    hratio = (TH1D*)spec1->Clone(title);
+    hratio->GetYaxis()->SetTitle("Ratio");
+    hratio -> Divide(spec1,spec2rebin,1,1,option);
+  }else{
+    TArrayD *binarr = (TArrayD*)spec2->GetXaxis()->GetXbins();
+    TH1D *spec1rebin = RebinHistogram(spec1,nbins2,binarr->GetArray());
+    hratio = (TH1D*)spec1->Clone(title);
+    hratio = (TH1D*)spec1rebin->Clone("ratio");
+    hratio->GetYaxis()->SetTitle("Ratio");
+    hratio -> Divide(spec1rebin,spec2,1,1,option);
+  }
+  return hratio;
+}
+
+
+
 /// Function to scale pt-spectra
 void FinalizePt(TH1D* h, Double_t nevents, Double_t etarange) //diff WQ
 {
@@ -1983,6 +2132,21 @@ void FinalizePt(TH1D* h, Double_t nevents, Double_t etarange) //diff WQ
   }
   h->GetYaxis()->SetTitle("1/(2#pi p_{T} N_{evt}) d^{2}N_{ch}/(d#eta dp_{T}) (GeV/c)^{-2}");
 }
+
+void FinalizeCrossSectionAfterburner(TH1D* h, Double_t etarange) //diff WQ
+{
+  for (int i= h->FindBin(0.4); i <= h->GetNbinsX() ;i++) {
+    Double_t pt = h->GetBinCenter(i);
+    Double_t val = h->GetBinContent(i);
+    Double_t err = h->GetBinError(i);
+    Double_t cval = (etarange>0) ? (val)/(2.0 * TMath::Pi() * etarange * pt) : 0;
+    Double_t cerr = (etarange>0) ? (err)/(2.0 * TMath::Pi() * etarange * pt) : 0;
+    h->SetBinContent(i,cval);
+    h->SetBinError(i,cerr);
+  }
+  h->GetYaxis()->SetTitle("1/(2#pi p_{T} N_{evt}) d^{2}N_{ch}/(d#eta dp_{T}) (GeV/c)^{-2}");
+}
+
 
 /// Alternative function to scale pt-spectra without the 1/(2*pi*pT) term
 void FinalizePt_b(TH1D* h, Double_t nevents, Double_t etarange) //invariant yield
@@ -2056,4 +2220,12 @@ void FinalizePtSpectrum(TH1D* h, double etaRange, double Nev)
         h->SetBinError(i, h->GetBinError(i)/pt);
     }
   h->GetYaxis()->SetTitle("1/(2#pi p_{T} N_{evt}) d^{2}N_{ch}/(d#eta dp_{T}) (GeV/c)^{-2}");
+}
+
+
+///PCM Analysis:
+void FinalizeInvariantYield(TH1D* h, double etaRange, double Nev)
+{
+  h->Scale(1./(etaRange*Nev*2*TMath::Pi()), "width");
+  h->GetYaxis()->SetTitle("1/(2#pi N_{evt}) d^{2}N/(d#eta dp_{T}) GeV^{-1}/c^{3}");
 }
