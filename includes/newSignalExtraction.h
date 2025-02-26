@@ -610,7 +610,7 @@ class MesonSignalExtraction {
   
 
         void ExtractSignal(){ //This is the main function
-            for(int i = 0; i < pT.size()-1; i++){
+            for(int i = 0; i <= pT.size()-1; i++){
                 cout << "pT: " << pT[i] << " - " << pT[i+1] << endl;
 
                 hMggPt_Same1D = FillProjectionX(hMggPt_Same, pT[i], pT[i+1]);

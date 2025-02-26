@@ -78,7 +78,10 @@
         "MCQA.C": "cpp",
         "compareEffs.C": "cpp",
         "__tree": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "bckUpPUP.C": "cpp",
+        "backUp.C": "cpp",
+        "closureTest.C": "cpp"
     },
     "cmake.configureOnOpen": false
 }

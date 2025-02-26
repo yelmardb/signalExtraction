@@ -12,7 +12,7 @@ void compareEffs(){
 
   Int_t runnNumber_LHC24f3c = 348247;
   Int_t runnNumber_LHC24f3c_NoMCTunedOnData = 337539;
-  Int_t runNumber_LHC24f3bFullStats = 300332; //pass7 with cut variations
+  Int_t runNumber_LHC24f3bFullStats = 348340; //pass7 with cut variations
   cout << "debugging, line" << __LINE__ << endl;
   const char* trainOutputMC_LHC24f3c = Form("inputFiles/LHC22oPass7/AnalysisResults_MC_%d.root", runnNumber_LHC24f3c);
   const char* trainOutputMC_LHC24f3c_NoMCTunedOnData =  Form("inputFiles/LHC22oPass7/AnalysisResults_MC_%d.root", runnNumber_LHC24f3c_NoMCTunedOnData);

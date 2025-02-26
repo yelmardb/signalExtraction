@@ -1873,53 +1873,38 @@ double GetIntegralFromTo(TH1D* h, double lowEnd, double highEnd)
     }
     return integral;
 }
+
 TH1D* RebinPtSpectrum(const TH1D* h, Int_t nBins, const Double_t* xBins){
-  if (!h || !nBins || !xBins) return (TH1D*)h; 
-
-  TH1D *h1 = (TH1D*) h->Clone("h_temp");
-  if (!h1->GetSumw2N()) h1->Sumw2();
-
-  // Scale bin content by center * width
-  for (Int_t i = 1; i <= h1->GetNbinsX(); i++) {
-    Double_t value = h1->GetBinContent(i);
-    Double_t width = h1->GetBinWidth(i);
-    Double_t center = h1->GetBinCenter(i);
-    Double_t error = h1->GetBinError(i);
-
-    h1->SetBinContent(i, value * center * width);
-    h1->SetBinError(i, error * center * width);
-  }
-
-  // Rebin histogram
-  TH1D* h2 = (TH1D*) h1->Rebin(nBins, "hnew", xBins);
-  if (!h2) return nullptr;  // Ensure rebinning was successful
-  if (!h2->GetSumw2N()) h2->Sumw2();
-
-  // Restore differential cross-section
-  for (Int_t i = 1; i <= h2->GetNbinsX(); i++) {
-    Double_t value = h2->GetBinContent(i);
-    Double_t width = h2->GetBinWidth(i);
-    Double_t center = h2->GetBinCenter(i);
-    Double_t error = h2->GetBinError(i);
-
-    if (center * width != 0) {
-      h2->SetBinContent(i, value / (center * width));
-      h2->SetBinError(i, error / (center * width));
-    } else {
-      h2->SetBinContent(i, 0);
-      h2->SetBinError(i, 0);
-    }
-  }
-
-  delete h1;
-
-  TString stName = TString(h->GetName()) + "_rbn";
+   if (!h) return 0;
+   if (!nBins) return (TH1D*)h;
+   if (!xBins) return (TH1D*)h;
+   TH1D *h1 = (TH1D*) h->Clone("h");
+   if(!h1->GetSumw2N()) h1->Sumw2();
+   for (Int_t i = 1; i<=h1->GetNbinsX(); i++) {
+     Double_t value = h1->GetBinContent(i);
+     Double_t width = h1->GetBinWidth(i);
+     Double_t center = h1->GetBinCenter(i);
+     Double_t error = h1->GetBinError(i);
+     h1->SetBinContent(i,value*center*width); //*center*width
+     h1->SetBinError(i,error*center*width);
+   }
+   TH1D* h2 = (TH1D*)h1->Rebin(nBins,"hnew",xBins);
+   for (Int_t i = 1; i<=h2->GetNbinsX(); i++) {
+     Double_t value = h2->GetBinContent(i);
+     Double_t width = h2->GetBinWidth(i);
+     Double_t center = h2->GetBinCenter(i);
+     Double_t error = h2->GetBinError(i);
+     h2->SetBinContent(i,value/(center*width));
+     h2->SetBinError(i,error/(center*width));
+   }
+  if (h1) delete h1;
+  TString stName(h->GetName());
+  TString stTitle(h->GetTitle());
+  stName += "_rbn";
   h2->SetName(stName);
-  h2->SetTitle(h->GetTitle());
-
+  h2->SetTitle(stTitle);
   return h2;
 }
-
 
 TH1D* RebinHistogram(const TH1D* h, Int_t nBins, const Double_t* xBins){
    if (!h) return 0;
@@ -2131,21 +2116,6 @@ TH1D* MakeRatioSpectraWoNorm(const TH1D *spec1, const TH1D*spec2, const char* op
 }
 
 
-void FinalizePtTmp(TH1D* h, Double_t etarange) //diff WQ
-{
-  for (int i=1; i <= h->GetNbinsX() ;i++) {
-    Double_t pt = h->GetBinCenter(i);
-    Double_t width = h->GetBinWidth(i);
-    Double_t val = h->GetBinContent(i);
-    Double_t err = h->GetBinError(i);
-    Double_t cval = (etarange>0) ? (val)/( pt) : 0;
-    Double_t cerr = (etarange>0) ? (err)/( pt) : 0;
-    h->SetBinContent(i,cval);
-    h->SetBinError(i,cerr);
-  }
-  h->GetYaxis()->SetTitle("1/(2#pi p_{T} N_{evt}) d^{2}N_{ch}/(d#eta dp_{T}) (GeV/c)^{-2}");
-}
-
 
 /// Function to scale pt-spectra
 void FinalizePt(TH1D* h, Double_t nevents, Double_t etarange) //diff WQ
@@ -2162,6 +2132,8 @@ void FinalizePt(TH1D* h, Double_t nevents, Double_t etarange) //diff WQ
   }
   h->GetYaxis()->SetTitle("1/(2#pi p_{T} N_{evt}) d^{2}N_{ch}/(d#eta dp_{T}) (GeV/c)^{-2}");
 }
+
+  
 
 void FinalizeCrossSectionAfterburner(TH1D* h, Double_t etarange) //diff WQ
 {

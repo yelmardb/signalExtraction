@@ -8,78 +8,82 @@
 
 
 
-
 void pileUpCorrection(){
   //*******************************************************************************************************///
     ///Load 
 
 
-    const char* inFileName_DATA = strdup(Form("../Run3Pi0/data/AnalysisResults.root"));
-    const char* inFileName_TrueMC = strdup(Form("../Run3Pi0/mc/AnalysisResults.root"));
-
-
-    ///DCAz distributions
-
-    TH2D* hDCAxyz_V0_Data =  (TH2D*)extractHistogram(Form("%s:/pcm-qc/V0/hDCAz_Pt",inFileName_DATA));
-    if(!hDCAxyz_V0_Data) cout << "WARNING: hDCAz_Pt in data"<< endl;
-
-    TH2D* hDCAxyz_V0_MC =  (TH2D*)extractHistogram(Form("%s:/pcm-qc-mc/V0/primary/hDCAz_Pt",inFileName_TrueMC));
-    if(!hDCAxyz_V0_MC) cout << "WARNING: hDCAz_Pt in MC"<< endl;
-
-
-    for(int i = 3; i < 7; i++){
-
-        hDCAxyz_V0_Data->GetYaxis()->SetRangeUser(fBinsPi0PtMC[i], fBinsPi0PtMC[i+1]);
-        TH1D* hDCAz_V0_Data = (TH1D*)hDCAxyz_V0_Data->ProjectionY(Form("hDCAxyz_V0_MC_pT_%.2f_%.2f", fBinsPi0PtMC[i], fBinsPi0PtMC[i+1]));
-        TH1D* hDCAz_V0_Data_NoPileUp = (TH1D*)hDCAxyz_V0_Data->ProjectionY(Form("hDCAxyz_V0_Data_pT_%.2f_%.2f", fBinsPi0PtMC[i], fBinsPi0PtMC[i+1]));
-
-        hDCAz_V0_Data->Rebin(2);
-        hDCAz_V0_Data_NoPileUp->Rebin(2);
+    const char* inFileName_DATA = strdup(Form("../Run3Pi0/data/AnalysisResults2.root"));
+    const char* inFileName_TrueMC = strdup(Form("../Run3Pi0/mc/AnalysisResults2.root"));
+    std::vector<Double_t> fBinsPt= {0.2, 1.0, 2., 3.0, 4.0, 5.0, 6.0, 10.0}; 
 
     
-        hDCAxyz_V0_MC->GetYaxis()->SetRangeUser(0.4, 3.0);
-        TH1D* hDCAz_V0_MC = (TH1D*)hDCAxyz_V0_MC->ProjectionX(Form("hDCAxyz_V0_MC_pT_%.2f_%.2f", fBinsPi0PtMC[i], fBinsPi0PtMC[i+1]));
-        hDCAz_V0_MC->Rebin(2);
+    ///Number of Events
+    TH1D* hCollisionCounter = (TH1D*)extractHistogram(Form("%s:/pcm-qc-mc/Event/after/hCollisionCounter",inFileName_TrueMC));
+    Double_t nEventsMC = hCollisionCounter->GetBinContent(10);
+    cout << "nEventsMC: " << nEventsMC << endl;
 
-
-        Int_t smoothingIterations = 20; // Number of smoothing iterations
-
-        TH1D* hEstimatedPileUp =  (TH1D*)hDCAz_V0_Data->ShowBackground(smoothingIterations, "same");
-        hDCAz_V0_Data_NoPileUp->Add(hEstimatedPileUp, -1);
-       
-
-        hDCAz_V0_Data->Scale(1/hDCAz_V0_Data->Integral());
-        hDCAz_V0_MC->Scale(1/hDCAz_V0_MC->Integral());
-        hDCAz_V0_Data_NoPileUp->Scale(1/hDCAz_V0_Data_NoPileUp->Integral());
-        hEstimatedPileUp->Scale(1/hEstimatedPileUp->Integral());
-
-        SetHistogramPropertiesAlt(hDCAz_V0_Data, "#it{DCA}_{z} (cm)", "norm. counts", 0);
-        SetHistogramPropertiesAlt(hDCAz_V0_MC, "#it{DCA}_{z} (cm)", "norm. counts", 1);
-        SetHistogramPropertiesAlt(hDCAz_V0_Data_NoPileUp, "#it{DCA}_{z} (cm)", "norm. counts", 2);
-        SetHistogramPropertiesAlt(hEstimatedPileUp, "#it{DCA}_{z} (cm)", "norm. counts", 3);
-
-        TLegend* leg = new TLegend(0.7, 0.7, 0.9, 0.9);
-        leg->AddEntry(hDCAz_V0_Data, "Data, cat. 1", "lp");
-        leg->AddEntry(hDCAz_V0_MC, "MC, cat. 1", "lp");
-        leg->AddEntry(hEstimatedPileUp, "Estimated pile-up", "lp");
-        leg->AddEntry(hDCAz_V0_Data_NoPileUp, "Data w/ pile-up subtracted", "lp");
-
-        TObjArray* arr = new TObjArray();
-        //arr->Add(hDCAz_V0_Data);
-        arr->Add(hDCAz_V0_MC);
-        //arr->Add(hEstimatedPileUp);
-        //arr->Add(hDCAz_V0_Data_NoPileUp);
-        arr->Add(leg);
-
-        TCanvas* canDCAz = (TCanvas*)makeCanvas(arr, 0, "CMYK|NoTime ", 0, 0);
-        
-    }
+    ///pT distributions
 
     ///DCAz distributions
-    THnD* hDCAz_V0_MCInfo = (THnD*)extractHistogram(Form("%s:/pcm-qc-mc/V0/primary/hDCAz_Pt_True",inFileName_TrueMC));
-    if(!hDCAz_V0_MCInfo) cout << "WARNING: hDCAxyz_Pt_True in MC"<< endl;
+    //
+    THnSparseF* hDCAz_Pt_collType = (THnSparseF*)extractHistogram(Form("%s:/pcm-qc-mc/V0/primary/hDCAz_Pt_collType",inFileName_TrueMC));
+    if(!hDCAz_Pt_collType) cout << "WARNING: hDCAz_Pt_collType in MC"<< endl;
+    
+    TH1D* hDCAz_V0_MC_Validated[fBinsPt.size()];
+    TH1D* hDCAz_V0_MC_NotValidated[fBinsPt.size()];
+    TH1D* hDCAz_V0_MC_All[fBinsPt.size()];
+    TLegend* legend[fBinsPt.size()];
+    TObjArray* arr[fBinsPt.size()];
+    TCanvas* canDCAz[fBinsPt.size()];
 
-    hDCAz_V0_MCInfo->GetAxis(2)->SetRangeUser(-0.5, 0.5);
+  
+    for(Int_t i = 0; i < fBinsPt.size() - 1; i++){
+      hDCAz_Pt_collType->GetAxis(1)->SetRangeUser(fBinsPt[i], fBinsPt[i+1]);
+      
+      hDCAz_Pt_collType->GetAxis(2)->SetRangeUser(0.5, 1.5);
+      hDCAz_V0_MC_Validated[i] = (TH1D*)hDCAz_Pt_collType->Projection(0);
+      hDCAz_V0_MC_Validated[i]->SetName(Form("hDCAz_V0_MC_Validated_pT_%.2f_%.2f", fBinsPt[i], fBinsPt[i+1]));
+      hDCAz_V0_MC_Validated[i]->Rebin(2);
+      hDCAz_V0_MC_Validated[i]->Scale(1./nEventsMC);
+      
+
+      hDCAz_Pt_collType->GetAxis(2)->SetRangeUser(-0.5, 0.5);
+      hDCAz_V0_MC_NotValidated[i] = (TH1D*)hDCAz_Pt_collType->Projection(0);
+      hDCAz_V0_MC_NotValidated[i]->SetName(Form("hDCAz_V0_MC_NotValidated_pT_%.2f_%.2f", fBinsPt[i], fBinsPt[i+1]));
+      hDCAz_V0_MC_NotValidated[i]->Rebin(2);
+      hDCAz_V0_MC_NotValidated[i]->Scale(1./nEventsMC);
+      
+      hDCAz_Pt_collType->GetAxis(2)->SetRangeUser(-0.5, 1.5);
+      hDCAz_V0_MC_All[i] = (TH1D*)hDCAz_Pt_collType->Projection(0);
+      hDCAz_V0_MC_All[i]->SetName(Form("hDCAz_V0_MC_All_pT_%.2f_%.2f", fBinsPt[i], fBinsPt[i+1]));
+      hDCAz_V0_MC_All[i]->Rebin(2);
+      hDCAz_V0_MC_All[i]->Scale(1./nEventsMC);
+
+      
+      ///Plotting
+      SetHistogramPropertiesAlt(hDCAz_V0_MC_Validated[i], "#it{DCA}_{z} (cm)", "norm. counts", 0);
+      SetHistogramPropertiesAlt(hDCAz_V0_MC_NotValidated[i], "#it{DCA}_{z} (cm)", "norm. counts", 1);
+      SetHistogramPropertiesAlt(hDCAz_V0_MC_All[i], "#it{DCA}_{z} (cm)", "norm. counts", 14);
+      legend[i] = new TLegend(0.7, 0.7, 0.9, 0.9); 
+      legend[i]->AddEntry((TObject*)0x0,Form("%.2f< #it{p}_{T} < %.2f GeV/c", fBinsPt[i], fBinsPt[i+1]), "");
+      legend[i]->AddEntry(hDCAz_V0_MC_Validated[i], "Validated MC collisions", "lp");
+      legend[i]->AddEntry(hDCAz_V0_MC_NotValidated[i], "Invalidated MC collisions", "lp");
+      legend[i]->AddEntry(hDCAz_V0_MC_All[i], "All collisions", "lp");
+      
+      arr[i] = new TObjArray();
+      arr[i]->Add(hDCAz_V0_MC_Validated[i]);
+      arr[i]->Add(hDCAz_V0_MC_NotValidated[i]);
+      arr[i]->Add(hDCAz_V0_MC_All[i]);
+      arr[i]->Add(legend[i]); 
+      
+      canDCAz[i] = (TCanvas*)makeCanvas(arr[i], 0, "CMYK|NoTime LogY ", 0, 0);
+      
+    }
+
+  }
+    
+    /*hDCAz_V0_MCInfo->GetAxis(2)->SetRangeUser(-0.5, 0.5);
     TH1D* hDCAz_ValidatedCollisions = (TH1D*)hDCAz_V0_MCInfo->Projection(0);
     SetHistogramPropertiesAlt(hDCAz_ValidatedCollisions, "#it{DCA}_{z} (cm)", "norm. counts", 0);
     hDCAz_ValidatedCollisions->Rebin(2);
@@ -193,3 +197,4 @@ void pileUpCorrection(){
 
 }
 
+*/

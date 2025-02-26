@@ -80,6 +80,30 @@ void newSignalExtraction(){
 
    CalculateAndApplyEff(outputSignalExtractionPi0Data, outputSignalExtractionPi0MC, outputSignalExtractionPi0TrueMC, inFileTrueMCName, "Pi0");
 
+   ///Closure test
+   char* outputSignalExtractionPi0ClosureTest = strdup(Form("outputSignalExtraction/%s/SignalExtraction_Pi0_ClosureTest_%d.root", period, runNumberMC));
+
+   MesonSignalExtraction  pi0SignalExtractionClosureTest;
+   pi0SignalExtractionClosureTest.SetPathToFile(inFileMCName);
+   pi0SignalExtractionClosureTest.SetOutputFileName(outputSignalExtractionPi0ClosureTest);
+   pi0SignalExtractionClosureTest.SetPtBinning(fBinsPi0PtMC);
+   pi0SignalExtractionClosureTest.SetMC();
+   pi0SignalExtractionClosureTest.SetPeriod(period);
+   pi0SignalExtractionClosureTest.SetRun("Run3");
+   pi0SignalExtractionClosureTest.SetCutMode("");
+   pi0SignalExtractionClosureTest.SetPathsToHistos();
+   pi0SignalExtractionClosureTest.SetMassWindow(massWindowLowPi0, massWindowHighPi0);
+   pi0SignalExtractionClosureTest.SetIntegrationRange(minIntegrationRangePi0, maxIntegrationRangePi0);
+   pi0SignalExtractionClosureTest.SetBackgroundRange(minBackgroundRangePi0, maxBackgroundRangePi0);
+   pi0SignalExtractionClosureTest.LoadHistograms();
+   pi0SignalExtractionClosureTest.InitHistograms();
+   pi0SignalExtractionClosureTest.ExtractSignal();
+
+   CalculateAndApplyEff(outputSignalExtractionPi0ClosureTest, outputSignalExtractionPi0MC, outputSignalExtractionPi0TrueMC, inFileTrueMCName, "Pi0");
+
+
+
+
 
 //standard:
 
@@ -154,6 +178,7 @@ void newSignalExtraction(){
     etaSignalExtractionTrueMC.ExtractSignal();
 
     CalculateAndApplyEff(outputSignalExtractionEtaData, outputSignalExtractionEtaMC, outputSignalExtractionEtaTrueMC, inFileTrueMCName, "Eta");
+
 /*
     for(auto cutMode : cutModes){
         char* outputSignalExtractionPi0TrueMC_cutVar = strdup(Form("outputSignalExtraction/%s/%s/SignalExtraction_Pi0_TrueMC_%d_.root", period, cutMode,runNumberTrueMC));
@@ -345,16 +370,12 @@ void CalculateAndApplyEff(const char* outputSignalExtractionData, const char* ou
 
 
     TH1D* mesonAccXEffxBR = (TH1D*)hpTRec->Clone(Form("mesonAccXEff_%s", meson));
-    mesonAccXEffxBR->Reset();
-    mesonAccXEffxBR->Divide(hpTRec, hpTGenTrueRebinned, 1., 1., "b");
-    //mesonAccXEffxBR = (TH1D*)MakeRatioSpectraWoNorm(hpTRec, hpTGen, "quiet");
+    mesonAccXEffxBR->Divide(hpTGenTrueRebinned);
     mesonAccXEffxBR->SetName(Form("mesonAccXEff_%s", meson));
     //mesonAccXEffxBR->Scale(branchingRatio);
 
     TH1D* mesonAccXEffxBRTrue = (TH1D*)hpTRecTrue->Clone(Form("mesonAccXEffxBRTrue_%s", meson));
-    mesonAccXEffxBRTrue->Reset();
-    mesonAccXEffxBRTrue->Divide(hpTRecTrue, hpTGenTrueRebinned, 1., 1., "b");
-    //mesonAccXEffxBRTrue = (TH1D*)MakeRatioSpectraWoNorm(hpTRecTrue, hpTGen, "quiet");
+    mesonAccXEffxBRTrue->Divide(hpTGenTrueRebinned);
     mesonAccXEffxBRTrue->SetName(Form("mesonAccXEffxBRTrue_%s", meson));
     //mesonAccXEffxBRTrue->Scale(branchingRatio);
 
@@ -367,13 +388,12 @@ void CalculateAndApplyEff(const char* outputSignalExtractionData, const char* ou
     // if(strcmp(meson, "Eta") == 0) mesonAccXEffxBRTrue = (TH1D*)effJulia->Clone(Form("mesonAccXEffxBRTrue_%s", meson));
 
 
-    for(int i = 1; i <= h1yieldCorr->GetNbinsX(); i++){
-        h1yieldCorr->SetBinContent(i, h1yield->GetBinContent(i)/mesonAccXEffxBRTrue->GetBinContent(mesonAccXEffxBRTrue->FindBin(0.01+h1yield->GetBinLowEdge(i))));
+    for(int i = 0; i <= h1yieldCorr->GetNbinsX(); i++){
+        h1yieldCorr->SetBinContent(i, h1yield->GetBinContent(i)/mesonAccXEffxBRTrue->GetBinContent(mesonAccXEffxBRTrue->FindBin(h1yield->GetBinCenter(i))));
 
         Double_t contentYield = h1yield->GetBinContent(i);
         Double_t errorYield = h1yield->GetBinError(i);
         Double_t contentAccXEffxBR = mesonAccXEffxBRTrue->GetBinContent(mesonAccXEffxBRTrue->FindBin(h1yield->GetBinCenter(i)));
-        cout << "contentAccXEffxBR: " << contentAccXEffxBR << endl;
         Double_t errorAccXEffxBR = mesonAccXEffxBRTrue->GetBinError(i);
         Double_t error = TMath::Sqrt( TMath::Power(errorYield/contentAccXEffxBR, 2) + TMath::Power(contentYield*errorAccXEffxBR/contentAccXEffxBR*contentAccXEffxBR, 2));
         h1yieldCorr->SetBinError(i, error);

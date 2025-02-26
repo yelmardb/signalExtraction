@@ -21,9 +21,9 @@
 
 // //LHC22oPass7
   const char* period = "LHC22oPass7";
-  Int_t runNumberData = 298017; //pass7 with cut variations
-  Int_t runNumberMC = 300332;  //pass7 with cut variations
-  Int_t runNumberTrueMC = 300332; //pass7 with cut variations
+  Int_t runNumberData = 351015; //pass7 with cut variations
+  Int_t runNumberMC = 348247;  //pass7 with cut variations
+  Int_t runNumberTrueMC = 348247; //pass7 with cut variations
   
   
   ///337539, pass7 LHC24f3c without PIDTPC_MCTunedOnData, 10% of statistics

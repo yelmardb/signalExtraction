@@ -232,6 +232,7 @@ void newPlot(){
 
 
             ///Efficiencies Eta      
+            Double_t etaRange = 1.6;
               Double_t branchingRatio = 0.98823;
             Double_t branchingRatioEta = 0.3941;
 
